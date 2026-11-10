@@ -55,14 +55,16 @@ code and contract. The gate rereads all three hashes before trusting a record.
 
 ## 4. CI
 
-Two workflows, both on pull requests only:
+Three workflows, all on pull requests only:
 
 - **harness** (`ubuntu-slim`, standard library): `make check` and the tests that need no dependencies. Cheap; always runs.
 - **ml** (`ubuntu-latest`): only when code, data, contracts, tests or dependencies change. Installs the pinned
   dependencies, runs every test, runs the demo into a scratch run folder and asserts that the honest model passes the
   gate and the leaky one fails.
+- **install** (Ubuntu, macOS and Windows runners): only when the install guide, the Makefile or the dependencies
+  change. Runs the guide's commands from the base tools to `make gate`, so the guide stays true.
 
-Both cancel superseded runs on the same branch. Public repositories do not pay for standard GitHub-hosted runners;
+All three cancel superseded runs on the same branch. Public repositories do not pay for standard GitHub-hosted runners;
 private ones do, so the same rules keep the bill small.
 
 ## 5. Adapt it to your project

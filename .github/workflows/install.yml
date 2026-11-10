@@ -1,0 +1,98 @@
+# Exercises the install guide (docs/install-claude-code-vscode.md) on GitHub-hosted runners so its commands stay true.
+# It cannot cover wsl --install, the VS Code panel or signing in; the Ubuntu job runs the same commands as the WSL path.
+# Runs only when the guide, this workflow, the Makefile or the dependencies change.
+name: install
+
+on:
+  pull_request:
+    paths:
+      - 'docs/install-claude-code-vscode.md'
+      - '.github/workflows/install.yml'
+      - 'Makefile'
+      - 'requirements.txt'
+  workflow_dispatch:
+
+concurrency:
+  group: install-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Ubuntu (guide §5, and the WSL path of §4.2)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: 1. Base tools
+        run: |
+          sudo apt update
+          sudo apt install -y git make python3 python3-venv curl
+      - name: 2. uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: 3. VS Code
+        run: sudo snap install --classic code
+      - name: 4. Claude Code
+        run: curl -fsSL https://claude.ai/install.sh | bash
+      - name: A new terminal would have ~/.local/bin and /snap/bin on the PATH
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "/snap/bin" >> "$GITHUB_PATH"
+      - name: 5. VS Code extensions
+        run: |
+          code --install-extension anthropic.claude-code
+          code --install-extension ms-python.python
+      - name: Verify (guide §7)
+        run: |
+          git --version && python3 --version && make --version | head -1 && uv --version
+          code --version | head -1 && claude --version
+          make setup && make check && make test
+          export MLH_RUNS_DIR=$(mktemp -d)
+          make demo
+          make gate RUN=$(ls -t "$MLH_RUNS_DIR"/*.json | head -1)
+
+  macos:
+    name: macOS (guide §3)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: 1. Xcode command line tools (preinstalled on the runner)
+        run: xcode-select -p
+      - name: 3. uv, GitHub CLI and VS Code (Homebrew is preinstalled on the runner)
+        run: |
+          brew install uv gh
+          brew install --cask visual-studio-code
+      - name: 4. Claude Code
+        run: curl -fsSL https://claude.ai/install.sh | bash
+      - name: A new terminal would have ~/.local/bin on the PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: 5. VS Code extensions
+        run: |
+          code --install-extension anthropic.claude-code
+          code --install-extension ms-python.python
+      - name: Verify (guide §7)
+        run: |
+          git --version && python3 --version && make --version | head -1 && uv --version
+          code --version | head -1 && claude --version
+          make setup && make check && make test
+          export MLH_RUNS_DIR=$(mktemp -d)
+          make demo
+          make gate RUN=$(ls -t "$MLH_RUNS_DIR"/*.json | head -1)
+
+  windows-native:
+    name: Windows, Claude Code only (guide §4.3)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Native installer from PowerShell
+        shell: pwsh
+        run: irm https://claude.ai/install.ps1 | iex
+      - name: A new terminal would have %USERPROFILE%\.local\bin on the PATH
+        shell: pwsh
+        run: Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.local\bin"
+      - name: Verify
+        shell: pwsh
+        run: claude --version
