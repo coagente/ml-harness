@@ -1,0 +1,48 @@
+# The ML job runs only when code, data, contracts, tests or dependencies change. It asserts the gate verdicts:
+# the honest demo must pass and the leaky one must fail. Run records go to a scratch folder, not to runs/.
+name: ml
+
+on:
+  pull_request:
+    paths:
+      - 'mlh/**'
+      - 'examples/**'
+      - 'data/**'
+      - 'tests/**'
+      - 'tools/gate.py'
+      - 'requirements.txt'
+      - '.github/workflows/ml.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ml-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  demo-and-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: All tests
+        run: python -m unittest discover -s tests -t . -v
+      - name: Honest model passes the gate
+        run: |
+          export MLH_RUNS_DIR="$RUNNER_TEMP/runs"
+          python examples/weekly_risk/run.py
+          python3 -I tools/gate.py "$(ls -t "$MLH_RUNS_DIR"/*.json | head -1)"
+      - name: Leaky model fails the gate
+        run: |
+          export MLH_RUNS_DIR="$RUNNER_TEMP/runs"
+          python examples/weekly_risk/run.py --leak
+          if python3 -I tools/gate.py "$(ls -t "$MLH_RUNS_DIR"/*.json | head -1)"; then
+            echo "The gate let a leak through" && exit 1
+          fi

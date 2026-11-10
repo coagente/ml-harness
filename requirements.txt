@@ -1,0 +1,7 @@
+# Pinned dependencies for the examples and the numpy tests (Python 3.12). The harness itself (guard, checks, gate,
+# contract, registry) uses only the standard library.
+numpy==2.5.4
+scikit-learn==1.9.1
+scipy==1.18.1
+joblib==1.6.0
+threadpoolctl==3.7.0

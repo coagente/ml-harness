@@ -1,0 +1,21 @@
+{
+  "name": "weekly_risk",
+  "version": "1.0.0",
+  "decision": "Which K assets to inspect next week, given a fixed inspection capacity",
+  "unit": "asset-week (weeks start on Monday)",
+  "entity": "asset_id",
+  "period": "week_start",
+  "population": "Assets with at least one recorded event before the validation window. Assets commissioned later are reported as coverage, not scored",
+  "zero_means": "With observed=1, zero events means no recorded downtime. With observed=0 the asset was not operating or not monitored: excluded as a target and treated as missing in features",
+  "data": {"path": "data/raw/weekly_events.csv"},
+  "target": {"column": "downtime_min", "description": "Downtime minutes in the target week, for observed asset-weeks only"},
+  "features": {
+    "allowed": ["lag_1", "lag_2", "lag_4", "mean_4", "mean_13", "mean_26", "events_13", "weeks_since_event", "observed_share_13", "line"],
+    "forbidden": ["events or downtime of the target week", "any window that includes the target week", "fields corrected after the week ends"],
+    "availability": "Every feature is computed from weeks strictly before the target week"
+  },
+  "splits": {"history_periods": 26, "train_end": "2025-06-23", "validation_end": "2025-09-22", "test_end": "2025-12-22"},
+  "metric": {"name": "capture_at_k", "k": 20, "description": "Share of the week's downtime minutes, among scored assets, that falls on the K assets ranked first"},
+  "gate": {"min_improvement": 0.02, "ci_level": 0.9, "ceiling_fraction": 0.9, "max_test_evaluations": 3, "bootstrap_block": 3},
+  "owners": {"data": "Owner of the downtime event log", "decision": "Maintenance planning lead", "thresholds": "Maintenance planning lead, with the ML team"}
+}

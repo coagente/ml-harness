@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ],
+    "allow": [
+      "Bash(make help)",
+      "Bash(make check)",
+      "Bash(make test)",
+      "Bash(make demo)",
+      "Bash(make demo-leak)",
+      "Bash(make demo-small)",
+      "Bash(make gate *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "python3 -I \"$CLAUDE_PROJECT_DIR/tools/guard.py\"", "timeout": 60}]}
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Read|Grep|Glob|Bash",
+        "hooks": [{"type": "command", "command": "python3 -I \"$CLAUDE_PROJECT_DIR/tools/guard.py\"", "timeout": 10}]
+      }
+    ],
+    "Stop": [
+      {"hooks": [{"type": "command", "command": "python3 -I \"$CLAUDE_PROJECT_DIR/tools/guard.py\"", "timeout": 90}]}
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+# Cheap checks on every pull request: harness consistency and the tests that need only the standard library.
+name: harness
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: harness-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: make check
+        run: python3 -I tools/check.py
+      - name: Standard-library tests (numpy tests are skipped)
+        run: python3 -I -m unittest discover -s tests -t . -v
